@@ -1,0 +1,14 @@
+{
+  "name": "nexa-ai-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "openai": "^4.0.0",
+    "@google/generative-ai": "^0.17.1"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
