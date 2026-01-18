@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiLogIn, FiMenu, FiX, FiBrain, FiGlobe, FiUser, FiSettings } from 'react-icons/fi';
+import { FiLogIn, FiMenu, FiX, FiRobot, FiGlobe, FiUser, FiSettings } from 'react-icons/fi';
 
 export default function Home() {
   const [email, setEmail] = useState('seu-email@exemplo.com');
@@ -29,7 +29,7 @@ export default function Home() {
             <p>Plano Vitalício</p>
           </div>
           <nav>
-            <a href="#ias"><FiBrain size={20} /> Minhas IAs</a>
+            <a href="#ias"><FiRobot size={20} /> Minhas IAs</a>
             <a href="#sites"><FiGlobe size={20} /> Sites de Marketing</a>
             <a href="#perfil"><FiUser size={20} /> Meu Perfil</a>
             <a href="#config"><FiSettings size={20} /> Configurações</a>
@@ -46,7 +46,7 @@ export default function Home() {
 
           <section className="cards">
             <div className="card">
-              <FiBrain size={32} />
+              <FiRobot size={32} />
               <h3>Assistentes IA</h3>
               <p>Crie e gerencie suas IAs personalizadas</p>
               <button>Criar Nova IA</button>
@@ -280,5 +280,5 @@ export default function Home() {
       `}</style>
     </div>
   );
-  }
-                
+                                                                        }
+  
