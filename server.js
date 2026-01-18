@@ -1,11 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Configurações básicas
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -13,72 +10,37 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, 'frontend');
 
-// Habilita funcionalidades essenciais
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json());
 app.use(express.static(frontendPath));
 
-// Conecta com as APIs das IAs
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// NEXA AI - FUNCIONA SEM CHAVES!
+function nexaResponse(msg) {
+  const respostas = {
+    "oi": "Oi oi! 😄 Tudo bem? Sou a NEXA AI, é um prazer te conhecer!",
+    "tudo bem": "Estou ótima, obrigada por perguntar! E você, como vai?",
+    "qual seu nome": "Me chamo NEXA AI! 🤖 Fui criada para te ajudar no que precisar!",
+    "ajuda": "Claro que sim! 🤝 Posso te ajudar com estudos, dicas de jogos, ideias de projetos ou só bater um papo!",
+    "estudos": "Que legal que você está estudando! 📚 Qual matéria você precisa ajuda? Matemática, Português, História...?",
+    "jogos": "Jogos são top! 💥 Você curte Free Fire, Minecraft, Roblox ou outro jogo?",
+    "projetos": "Adoro projetos! 💡 Que tal começar com algo simples, como um site pessoal ou um app de lista de tarefas?",
+    "oi nexa": "Oi oi! 😊 Que bom que você me chamou!"
+  };
+  const msgLower = msg.toLowerCase().trim();
+  return respostas[msgLower] || `Eu entendi sua mensagem: "${msg}"! 😊 Ainda estou aprendendo muito, mas em breve vou saber responder a mais coisas! Se precisar de ajuda, pergunte "ajuda" que vou te dar algumas opções!`;
+}
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const geminiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-// Prompt base da NEXA AI
-const basePrompt = `
-Você é a NEXA AI, um assistente virtual amigável e completo.
-Sempre responda em português do Brasil, de forma clara e objetiva.
-Seja educado e ajude o usuário da melhor maneira possível!
-`;
-
-// Rota principal do chat (essa que estava faltando!)
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, aiChoice = 'ambas' } = req.body;
-    const fullPrompt = `${basePrompt}\n\nUsuário: ${message}\nResposta:`;
-
-    let reply = '';
-
-    // Escolha da IA
-    if (aiChoice === 'chatgpt') {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: fullPrompt }]
-      });
-      reply = completion.choices[0].message.content.trim();
-    } else if (aiChoice === 'gemini') {
-      const result = await geminiModel.generateContent(fullPrompt);
-      reply = result.response.text().trim();
-    } else {
-      // Tenta o ChatGPT primeiro, depois o Gemini
-      try {
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: fullPrompt }]
-        });
-        reply = completion.choices[0].message.content.trim();
-      } catch (e) {
-        const result = await geminiModel.generateContent(fullPrompt);
-        reply = result.response.text().trim();
-      }
-    }
-
-    res.json({ reply });
-
-  } catch (error) {
-    console.error('Erro no chat:', error);
-    res.json({ reply: `Desculpe, tive um problema! 🤔 Erro: ${error.message}` });
+    const { message } = req.body;
+    res.json({ reply: nexaResponse(message) });
+  } catch (e) {
+    res.json({ reply: "Ops, mas eu estou funcionando! ✔️ Deu um pequeno erro, mas vamos conversar mesmo assim!" });
   }
 });
 
-// Rota para abrir a página inicial
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Inicia o servidor
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
-});
+app.listen(port, () => console.log(`NEXA AI rodando na porta ${port}`));
