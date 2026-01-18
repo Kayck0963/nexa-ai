@@ -8,72 +8,76 @@ import { fileURLToPath } from 'url';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuração para encontrar a pasta frontend
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, 'frontend');
 
-// Configurações básicas
 app.use(cors());
 app.use(express.json());
-// Serve arquivos estáticos do frontend
 app.use(express.static(frontendPath));
 
-// Inicializa as IAs
+// Testa as chaves primeiro
+console.log("Chave Gemini existe?", !!process.env.GEMINI_API_KEY);
+console.log("Chave OpenAI existe?", !!process.env.OPENAI_API_KEY);
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const geminiModel = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-// Prompt base personalizado para TUDO JUNTO
 const basePrompt = `
 Você é a NEXA AI, um assistente virtual completo que ajuda em QUALQUER COISA.
-Seu objetivo é adaptar sua resposta de acordo com o que o usuário precisar:
-- Se for conversa geral: seja amigável e descontraída
-- Se for estudos: seja claro, detalhado e didático
-- Se for jogos (inclusive Free Fire): use linguagem familiar ao assunto, dê dicas úteis
-- Se for negócios: seja profissional, objetivo e proponha soluções práticas
-
-Regras importantes:
-- Sempre responda em português do Brasil
-- Seja educada, respeitosa e clara
-- Adapte seu tom ao contexto da pergunta
-- Se não souber a resposta, diga a verdade e ofereça ajuda em outro assunto
-- Use emojis com moderação, apenas para deixar a conversa mais natural
+Sempre responda em português do Brasil.
 `;
 
-// Endpoint principal /api/chat
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, name = "usuário", aiChoice = "ambas" } = req.body;
-
-    // Monta o contexto completo
     const fullPrompt = `${basePrompt}\n\nUsuário: ${name}\nMensagem: ${message}\nResposta:`;
 
     let reply;
 
-    // Escolhe qual IA usar
-    if (aiChoice === "chatgpt" || (aiChoice === "ambas" && Math.random() > 0.5)) {
-      // Usa ChatGPT
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: fullPrompt }]
-      });
-      reply = completion.choices[0].message.content.trim();
+    if (aiChoice === "chatgpt") {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: fullPrompt }]
+        });
+        reply = completion.choices[0].message.content.trim();
+      } catch (e) {
+        reply = `Erro no ChatGPT: ${e.message}`;
+      }
+    } else if (aiChoice === "gemini") {
+      try {
+        const result = await geminiModel.generateContent(fullPrompt);
+        reply = result.response.text().trim();
+      } catch (e) {
+        reply = `Erro no Gemini: ${e.message}`;
+      }
     } else {
-      // Usa Gemini
-      const result = await geminiModel.generateContent(fullPrompt);
-      reply = result.response.text().trim();
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: fullPrompt }]
+        });
+        reply = completion.choices[0].message.content.trim();
+      } catch (e) {
+        try {
+          const result = await geminiModel.generateContent(fullPrompt);
+          reply = result.response.text().trim();
+        } catch (e2) {
+          reply = `Erro em ambas: ChatGPT(${e.message}) | Gemini(${e2.message})`;
+        }
+      }
     }
 
     res.json({ reply });
 
   } catch (error) {
-    console.error("Erro:", error);
-    res.status(500).json({ reply: "Desculpe, tive um pequeno problema técnico! 😕 Tente novamente em alguns instantes." });
+    console.error("Erro geral:", error);
+    res.status(500).json({ reply: `Erro técnico: ${error.message}` });
   }
 });
 
-// Rota padrão - abre o frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
@@ -81,3 +85,4 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
+    
