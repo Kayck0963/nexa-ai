@@ -1,23 +1,62 @@
-// ... [código anterior permanece igual até a seção de templates de IAs] ...
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import mercadopago from 'mercadopago';
+import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs'; // Alterado para bcryptjs (mais compatível)
+import pdf from 'html-pdf';
+import moment from 'moment';
+import dotenv from 'dotenv';
+
+// Carrega variáveis de ambiente
+dotenv.config();
+
+// Configurações básicas
+const app = express();
+const port = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'chave-secreta-nexa-2026';
+const BCRYPT_SALT_ROUNDS = 10;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendPath = path.join(__dirname, 'frontend');
+const pdfTemplatesPath = path.join(__dirname, 'templates', 'pdf');
+
+// Configuração do Mercado Pago
+mercadopago.configure({
+  access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || 'TEST-6249183341386323-011804-5e0a27b0e5b300e0307b5f5e08612125-152460543'
+});
+
+// Middlewares
+app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(frontendPath));
 
 // ==============================
-// TEMPLATES DE IAs (ATUALIZADOS COM MARKETING DIGITAL)
+// BANCO DE DADOS EM MEMÓRIA
 // ==============================
+const usuarios = [];
+const pagamentos = [];
+const historicoConversas = [];
+const solicitacoesPDF = [];
+const iasCriadas = [];
 const templatesIAs = [
-  // Templates anteriores
   {
     id: "template-1",
     nome: "IA de Estudos",
     descricao: "Assistente especializado em matérias escolares",
-    promptBase: "Você é um assistente educacional especializado em matérias do ensino fundamental e médio..."
+    promptBase: "Você é um assistente educacional especializado em matérias do ensino fundamental e médio. Sempre responda de forma clara, didática e com exemplos práticos. Use linguagem acessível e evite termos técnicos desnecessários."
   },
   {
     id: "template-2",
     nome: "IA de Suporte ao Cliente",
     descricao: "Assistente para responder dúvidas de clientes",
-    promptBase: "Você é um atendente de suporte ao cliente atencioso e eficiente..."
+    promptBase: "Você é um atendente de suporte ao cliente atencioso e eficiente. Sempre cumprimente o usuário, entenda sua dúvida com clareza e ofereça soluções práticas. Se não souber a resposta, indique que passará para um atendente humano."
   },
-  // Novos templates de Marketing Digital
   {
     id: "template-5",
     nome: "IA de Estratégias de Marketing",
@@ -44,9 +83,6 @@ const templatesIAs = [
   }
 ];
 
-// ==============================
-// MÓDULO DE CRIAÇÃO DE SITES DE MARKETING DIGITAL
-// ==============================
 const templatesSitesMarketing = [
   {
     id: "site-template-1",
@@ -121,7 +157,7 @@ const templatesSitesMarketing = [
 ];
 
 // ==============================
-// USUÁRIO ADMINISTRADOR PERSONALIZADO (ATUALIZADO)
+// CRIA USUÁRIO ADMIN
 // ==============================
 const criarUsuarioAdmin = async () => {
   const senhaCriptografada = await bcrypt.hash('senha-segura-123', BCRYPT_SALT_ROUNDS);
@@ -152,9 +188,9 @@ const criarUsuarioAdmin = async () => {
       permitePDF: true,
       suportePrioritario: true,
       permiteCriarIAs: true,
-      permiteCriarSites: true, // Novo: Permite criar sites de marketing
+      permiteCriarSites: true,
       limiteIAsCriadas: null,
-      limiteSitesCriados: null, // Ilimitado
+      limiteSitesCriados: null,
       limitePerguntasPorIA: 200
     },
     planoValidade: "vitalicio",
@@ -167,188 +203,169 @@ const criarUsuarioAdmin = async () => {
   });
 };
 
-// Chama a função para criar o usuário admin ao iniciar o servidor
 criarUsuarioAdmin();
 
 // ==============================
-// ROTAS PARA CRIAÇÃO DE SITES DE MARKETING
+// MIDDLEWARE DE AUTENTICAÇÃO
 // ==============================
-app.get('/api/marketing/sites/templates', autenticarUsuario, (req, res) => {
+const autenticarUsuario = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ sucesso: false, mensagem: "Token não fornecido!" });
+
   try {
-    // Verifica permissão
-    if (!req.usuario.planoAtivo.permiteCriarSites) {
-      return res.json({ sucesso: false, mensagem: "Seu plano não permite criar sites de marketing!" });
+    const usuarioDecodificado = jwt.verify(token, JWT_SECRET);
+    req.usuario = usuarios.find(u => u.id === usuarioDecodificado.id);
+    if (!req.usuario) return res.status(401).json({ sucesso: false, mensagem: "Usuário não encontrado!" });
+    
+    if (req.usuario.planoAtivo.id !== 'gratuito' && moment(req.usuario.planoValidade).isBefore(moment())) {
+      req.usuario.planoAtivo = {
+        id: "basico",
+        nome: "Plano Básico",
+        preco: 19.90,
+        moeda: "BRL",
+        recursos: [
+          "Acesso ao chat completo",
+          "20 perguntas por dia",
+          "Respostas detalhadas (até 500 caracteres)",
+          "Suporte por e-mail (resposta em até 24h)",
+          "Histórico de conversas (últimos 7 dias)",
+          "Exportação de histórico em TXT"
+        ],
+        duracao: "30 dias",
+        limitePerguntasDiario: 20,
+        tamanhoMaxResposta: 500,
+        permitePDF: false,
+        suportePrioritario: false
+      };
+      req.usuario.planoValidade = null;
     }
 
-    res.json({
-      sucesso: true,
-      templates: templatesSitesMarketing
-    });
+    next();
   } catch (erro) {
-    res.json({ sucesso: false, mensagem: `Erro ao carregar templates: ${erro.message}` });
+    return res.status(401).json({ sucesso: false, mensagem: "Token inválido ou expirado!" });
   }
-});
-
-app.post('/api/marketing/sites/criar', autenticarUsuario, (req, res) => {
-  try {
-    const { templateId, nomeSite, nicho, corPrimaria, corSecundaria, logoUrl } = req.body;
-    const usuario = req.usuario;
-
-    if (!usuario.planoAtivo.permiteCriarSites) {
-      return res.json({ sucesso: false, mensagem: "Seu plano não permite criar sites de marketing!" });
-    }
-
-    const template = templatesSitesMarketing.find(t => t.id === templateId);
-    if (!template) {
-      return res.json({ sucesso: false, mensagem: "Template não encontrado!" });
-    }
-
-    // Cria site personalizado
-    const novoSite = {
-      id: uuidv4(),
-      usuarioId: usuario.id,
-      nome: nomeSite,
-      nicho,
-      templateId,
-      templateNome: template.nome,
-      corPrimaria,
-      corSecundaria,
-      logoUrl,
-      estrutura: template.estrutura,
-      recursos: template.recursos,
-      tecnologias: template.tecnologias,
-      dataCriacao: moment().format('YYYY-MM-DD HH:mm:ss'),
-      status: "em-construcao",
-      codigoFonte: gerarCodigoFonteSite(template, nomeSite, nicho, corPrimaria, corSecundaria)
-    };
-
-    usuario.sitesCriados.push(novoSite.id);
-    // Salva site em banco (pode ser expandido para armazenar no sistema de arquivos)
-
-    res.json({
-      sucesso: true,
-      mensagem: "Site criado com sucesso!",
-      site: novoSite,
-      linkPreview: `/api/marketing/sites/preview/${novoSite.id}`
-    });
-  } catch (erro) {
-    res.json({ sucesso: false, mensagem: `Erro ao criar site: ${erro.message}` });
-  }
-});
-
-// Função para gerar código-fonte básico do site
-const gerarCodigoFonteSite = (template, nomeSite, nicho, corPrimaria, corSecundaria) => {
-  if (template.id === "site-template-1") {
-    return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${nomeSite} - Especialistas em Marketing Digital para ${nicho}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <style>
-    :root {
-      --cor-primaria: ${corPrimaria || '#2563eb'};
-      --cor-secundaria: ${corSecundaria || '#f97316'};
-    }
-    .banner-principal {
-      background-color: var(--cor-primaria);
-      color: white;
-      padding: 80px 20px;
-      text-align: center;
-    }
-    .diferenciais {
-      padding: 60px 20px;
-    }
-  </style>
-</head>
-<body>
-  <!-- Cabeçalho -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="#">${nomeSite}</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="#inicio">Início</a></li>
-          <li class="nav-item"><a class="nav-link" href="#servicos">Serviços</a></li>
-          <li class="nav-item"><a class="nav-link" href="#portfolio">Portfólio</a></li>
-          <li class="nav-item"><a class="nav-link" href="#contato">Contato</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Banner Principal -->
-  <section class="banner-principal" id="inicio">
-    <div class="container">
-      <h1>Transforme seu Negócio com Marketing Digital Eficiente</h1>
-      <p class="mt-4">Especialistas em ${nicho} - Resultados comprovados no mercado brasileiro</p>
-      <button class="btn btn-light btn-lg mt-5">Solicitar Orçamento</button>
-    </div>
-  </section>
-
-  <!-- Diferenciais -->
-  <section class="diferenciais">
-    <div class="container">
-      <h2 class="text-center mb-5">Nossos Diferenciais</h2>
-      <div class="row">
-        <div class="col-md-4 text-center">
-          <h3>Planejamento Estratégico</h3>
-          <p>Planos adaptados ao seu negócio e público-alvo</p>
-        </div>
-        <div class="col-md-4 text-center">
-          <h3>Resultados Mensuráveis</h3>
-          <p>Acompanhamento de métricas e relatórios detalhados</p>
-        </div>
-        <div class="col-md-4 text-center">
-          <h3>Time Especializado</h3>
-          <p>Profissionais capacitados e atualizados</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-    `;
-  }
-  // Códigos para outros templates seriam adicionados aqui
-  return "Código-fonte gerado conforme template selecionado.";
 };
 
-app.get('/api/marketing/sites/preview/:siteId', autenticarUsuario, (req, res) => {
+// ==============================
+// ROTAS DE USUÁRIO
+// ==============================
+app.post('/api/cadastro', async (req, res) => {
   try {
-    const siteId = req.params.siteId;
-    const usuario = req.usuario;
+    const { nome, email, senha, aceitaTermos } = req.body;
 
-    // Busca site criado pelo usuário
-    const site = usuarios
-      .flatMap(u => u.sitesCriados.map(id => iasCriadas.find(s => s.id === id)))
-      .find(s => s?.id === siteId && s?.usuarioId === usuario.id);
-
-    if (!site) {
-      return res.status(404).send("Site não encontrado!");
+    if (!nome || !email || !senha || !aceitaTermos) {
+      return res.json({ sucesso: false, mensagem: "Preencha todos os campos e aceite os termos!" });
     }
 
-    // Envia código-fonte como HTML
-    res.send(site.codigoFonte);
+    if (usuarios.some(u => u.email === email)) {
+      return res.json({ sucesso: false, mensagem: "E-mail já cadastrado!" });
+    }
+
+    if (senha.length < 6) {
+      return res.json({ sucesso: false, mensagem: "Senha deve ter pelo menos 6 caracteres!" });
+    }
+
+    const senhaCriptografada = await bcrypt.hash(senha, BCRYPT_SALT_ROUNDS);
+
+    const novoUsuario = {
+      id: uuidv4(),
+      nome,
+      email,
+      senha: senhaCriptografada,
+      planoAtivo: {
+        id: "basico",
+        nome: "Plano Básico",
+        preco: 19.90,
+        moeda: "BRL",
+        recursos: [
+          "Acesso ao chat completo",
+          "20 perguntas por dia",
+          "Respostas detalhadas (até 500 caracteres)",
+          "Suporte por e-mail (resposta em até 24h)",
+          "Histórico de conversas (últimos 7 dias)",
+          "Exportação de histórico em TXT"
+        ],
+        duracao: "30 dias",
+        limitePerguntasDiario: 20,
+        tamanhoMaxResposta: 500,
+        permitePDF: false,
+        suportePrioritario: false
+      },
+      planoValidade: moment().add(7, 'days').format('YYYY-MM-DD HH:mm:ss'),
+      dataCadastro: moment().format('YYYY-MM-DD HH:mm:ss'),
+      ultimoAcesso: null,
+      perguntasHoje: 0,
+      tema: "padrao",
+      iasCriadas: [],
+      sitesCriados: []
+    };
+
+    usuarios.push(novoUsuario);
+
+    const token = jwt.sign({ id: novoUsuario.id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      sucesso: true,
+      mensagem: "Cadastro realizado com sucesso!",
+      usuario: {
+        id: novoUsuario.id,
+        nome: novoUsuario.nome,
+        email: novoUsuario.email,
+        planoAtivo: novoUsuario.planoAtivo,
+        planoValidade: novoUsuario.planoValidade
+      },
+      token
+    });
   } catch (erro) {
-    res.status(500).send(`Erro ao carregar preview: ${erro.message}`);
+    res.json({ sucesso: false, mensagem: `Erro no cadastro: ${erro.message}` });
   }
 });
 
-// ==============================
-// ROTAS ADICIONAIS (CONTINUAÇÃO DO CÓDIGO ANTERIOR)
-// ==============================
-// ... [resto do código permanece igual, incluindo rotas de IAs, pagamentos e chat] ...
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, senha } = req.body;
 
-// Inicia o servidor
-app.listen(port, () => {
-  console.log(`NEXA AI rodando na porta ${port} - Sistema completo de marketing digital ativado!`);
+    const usuario = usuarios.find(u => u.email === email);
+    if (!usuario) {
+      return res.json({ sucesso: false, mensagem: "E-mail ou senha incorretos!" });
+    }
+
+    const senhaValida = await bcrypt.compare(senha, usuario.senha);
+    if (!senhaValida) {
+      return res.json({ sucesso: false, mensagem: "E-mail ou senha incorretos!" });
+    }
+
+    usuario.ultimoAcesso = moment().format('YYYY-MM-DD HH:mm:ss');
+    usuario.perguntasHoje = 0;
+
+    const token = jwt.sign({ id: usuario.id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      sucesso: true,
+      mensagem: "Login realizado com sucesso!",
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        planoAtivo: usuario.planoAtivo,
+        planoValidade: usuario.planoValidade,
+        tema: usuario.tema
+      },
+      token
+    });
+  } catch (erro) {
+    res.json({ sucesso: false, mensagem: `Erro no login: ${erro.message}` });
+  }
 });
-  
+
+app.get('/api/usuario/perfil', autenticarUsuario, (req, res) => {
+  res.json({
+    sucesso: true,
+    usuario: {
+      id: req.usuario.id,
+      nome: req.usuario.nome,
+      email: req.usuario.email,
+      planoAtivo: req.usuario.planoAtivo,
+      planoValidade: req.usuario.planoValidade,
+      dataCadastro: req.us
+        
