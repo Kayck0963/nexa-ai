@@ -1,5 +1,81 @@
-<!-- Seção de Marketing Digital -->
-<div id="marketing-section" class="d-none">
-  <div class="container mt-4">
-    <h2>📊 Marketing Digital</h2>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXA AI - Admin</title>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a1a; color: white; }
+    .container { background: #2d2d2d; padding: 30px; border-radius: 10px; }
+    input { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
+    button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>NEXA AI - Painel Admin</h1>
     
+    <div id="login-section">
+      <h2>Login</h2>
+      <input type="email" id="email" placeholder="Seu e-mail" value="seu-email@exemplo.com">
+      <input type="password" id="senha" placeholder="Sua senha" value="senha-segura-123">
+      <button onclick="fazerLogin()">Entrar</button>
+    </div>
+
+    <div id="painel-section" class="hidden">
+      <h2>Bem-vindo, <span id="nome-usuario"></span>!</h2>
+      <h3>Templates de IAs</h3>
+      <div id="ias-list"></div>
+      <h3>Templates de Sites</h3>
+      <div id="sites-list"></div>
+    </div>
+  </div>
+
+  <script>
+    async function fazerLogin() {
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+
+      const resposta = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha })
+      });
+
+      const dados = await resposta.json();
+      if (dados.sucesso) {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('painel-section').classList.remove('hidden');
+        document.getElementById('nome-usuario').textContent = dados.usuario.nome;
+        
+        carregarTemplates();
+      } else {
+        alert(dados.msg);
+      }
+    }
+
+    async function carregarTemplates() {
+      // Carrega IAs
+      const iasResposta = await fetch('/api/templates/ias');
+      const iasDados = await iasResposta.json();
+      document.getElementById('ias-list').innerHTML = iasDados.templates.map(ia => 
+        `<div style="padding: 10px; margin: 5px 0; background: #3d3d3d; border-radius: 5px;">
+          <strong>${ia.nome}</strong>: ${ia.descricao}
+        </div>`
+      ).join('');
+
+      // Carrega Sites
+      const sitesResposta = await fetch('/api/templates/sites');
+      const sitesDados = await sitesResposta.json();
+      document.getElementById('sites-list').innerHTML = sitesDados.templates.map(site => 
+        `<div style="padding: 10px; margin: 5px 0; background: #3d3d3d; border-radius: 5px;">
+          <strong>${site.nome}</strong>: ${site.descricao}
+        </div>`
+      ).join('');
+    }
+
+    // Estilo para ocultar elementos
+    document.querySelector('.hidden').style.display = 'none';
+  </script>
+</body>
+</html>
