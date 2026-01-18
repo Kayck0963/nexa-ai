@@ -1,4 +1,4 @@
-l{
+{
   "name": "nexa-ai-admin",
   "version": "1.0.0",
   "scripts": {
@@ -8,10 +8,13 @@ l{
   },
   "dependencies": {
     "next": "14.0.4",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "react-icons": "^4.12.0"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
