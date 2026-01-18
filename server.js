@@ -2,13 +2,22 @@ import express from 'express';
 import cors from 'cors';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Configuração para encontrar a pasta frontend
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendPath = path.join(__dirname, 'frontend');
+
 // Configurações básicas
 app.use(cors());
 app.use(express.json());
+// Serve arquivos estáticos do frontend
+app.use(express.static(frontendPath));
 
 // Inicializa as IAs
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -64,12 +73,11 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Rota padrão
+// Rota padrão - abre o frontend
 app.get('/', (req, res) => {
-  res.send("✅ NEXA AI Backend está funcionando! Acesse /api/chat para usar a API.");
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
-  
