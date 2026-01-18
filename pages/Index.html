@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXA AI - Painel Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/react-icons@4.12.0/fi/esm/index.esm.js" rel="stylesheet">
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="tela-login" class="tela">
+        <div class="card-login">
+            <h1>NEXA AI</h1>
+            <h2>Painel Administrador</h2>
+            <form id="form-login">
+                <div class="campo">
+                    <label>E-mail</label>
+                    <input type="email" id="email" value="seu-email@exemplo.com" required>
+                </div>
+                <div class="campo">
+                    <label>Senha</label>
+                    <input type="password" id="senha" value="senha-segura-123" required>
+                </div>
+                <button type="submit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    Entrar no Painel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Painel Admin -->
+    <div id="painel-admin" class="tela oculta">
+        <!-- Menu Lateral -->
+        <aside class="menu-lateral">
+            <button id="fechar-menu" class="btn-fechar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="perfil">
+                <h2>Kayck (Admin)</h2>
+                <p>Plano Vitalício</p>
+            </div>
+            <nav>
+                <a href="#ias">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><circle cx="8.5" cy="5.5" r="2.5"/><path d="M21 16v-3a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/></svg>
+                    Minhas IAs
+                </a>
+                <a href="#sites">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Sites de Marketing
+                </a>
+                <a href="#perfil">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Meu Perfil
+                </a>
+                <a href="#config">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Configurações
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="conteudo">
+            <header class="cabecalho">
+                <button id="abrir-menu" class="btn-abrir">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <h1>NEXA AI - Painel Admin</h1>
+            </header>
+
+            <!-- Cards Principais -->
+            <section class="cards">
+                <div class="card">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><circle cx="8.5" cy="5.5" r="2.5"/><path d="M21 16v-3a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/></svg>
+                    <h3>Assistentes IA</h3>
+                    <p>Crie e gerencie suas IAs personalizadas</p>
+                    <button>Criar Nova IA</button>
+                </div>
+                <div class="card">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <h3>Sites de Marketing</h3>
+                    <p>Monte sites profissionais em minutos</p>
+                    <button>Criar Novo Site</button>
+                </div>
+            </section>
+
+            <!-- Templates -->
+            <section class="templates">
+                <h2>Templates Prontos</h2>
+                <div class="grid-templates">
+                    <div class="template">
+                        <h4>IA de Marketing</h4>
+                        <p>Cria planos e estratégias digitais</p>
+                    </div>
+                    <div class="template">
+                        <h4>Site de Agência</h4>
+                        <p>Completo para consultorias de marketing</p>
+                    </div>
+                    <div class="template">
+                        <h4>IA de Redes Sociais</h4>
+                        <p>Produz conteúdo para todas as plataformas</p>
+                    </div>
+                    <div class="template">
+                        <h4>Landing Page de Vendas</h4>
+                        <p>Otimizada para converter visitantes em clientes</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+                                                                                                                                                                                                           </html>
+  
