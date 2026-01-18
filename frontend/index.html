@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXA AI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .chat-container {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      max-height: 600px;
+      border-radius: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      background: #6200ea;
+      color: white;
+      padding: 15px;
+      border-radius: 15px 15px 0 0;
+      display: flex;
+      align-items: center;
+    }
+    .chat-header h1 {
+      font-size: 20px;
+      margin-left: 10px;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .message {
+      max-width: 75%;
+      padding: 10px 15px;
+      border-radius: 20px;
+      line-height: 1.4;
+    }
+    .user {
+      background: #6200ea;
+      color: white;
+      align-self: flex-end;
+    }
+    .ai {
+      background: #e5e5ea;
+      color: black;
+      align-self: flex-start;
+      display: flex;
+      align-items: flex-start;
+    }
+    .ai .avatar {
+      background: #6200ea;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .chat-input {
+      padding: 20px;
+      border-top: 1px solid #e5e5ea;
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1px solid #e5e5ea;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+    }
+    .chat-input button {
+      background: #6200ea;
+      color: white;
+      border: none;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .ai-selector {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: white;
+      border-radius: 20px;
+      padding: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+    .ai-selector select {
+      border: none;
+      padding: 5px 10px;
+      border-radius: 15px;
+      background: #f0f0f0;
+      outline: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="avatar">N</div>
+      <h1>NEXA AI</h1>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Digite sua mensagem...">
+      <button id="sendBtn">➤</button>
+    </div>
+  </div>
+
+  <div class="ai-selector">
+    <select id="aiChoice">
+      <option value="ambas">Ambas as IAs</option>
+      <option value="chatgpt">Apenas ChatGPT</option>
+      <option value="gemini">Apenas Gemini</option>
+    </select>
+  </div>
+
+  <script>
+    let userMemory = {
+      name: null,
+      aiChoice: "ambas"
+    };
+
+    const savedMemory = localStorage.getItem("nexaMemory");
+    if (savedMemory) userMemory = JSON.parse(savedMemory);
+
+    const chatMessages = document.getElementById("chatMessages");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const aiChoiceSelect = document.getElementById("aiChoice");
+    aiChoiceSelect.value = userMemory.aiChoice;
+
+    // COLOQUE AQUI O LINK DO SEU VERCEL DEPOIS (ex: "https://nexa-ai-kayck0963.vercel.app")
+    const BACKEND_URL = "SEU_LINK_DO_VERCEL_AQUI";
+
+    // Salva escolha de IA
+    aiChoiceSelect.addEventListener("change", () => {
+      userMemory.aiChoice = aiChoiceSelect.value;
+      localStorage.setItem("nexaMemory", JSON.stringify(userMemory));
+    });
+
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+
+      if (sender === "ai") {
+        msg.innerHTML = `<div class="avatar">N</div><p>${text}</p>`;
+      } else {
+        msg.innerHTML = `<p>${text}</p>`;
+      }
+
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      addMessage(text, "user");
+      userInput.value = "";
+      processAI(text);
+    }
+
+    async function processAI(text) {
+      const lower = text.toLowerCase();
+
+      // Detecta nome do usuário
+      const nameMatch = lower.match(/me chamo (\w+)/i) || lower.match(/meu nome é (\w+)/i);
+      if (nameMatch) {
+        userMemory.name = nameMatch[1];
+        localStorage.setItem("nexaMemory", JSON.stringify(userMemory));
+        return reply(`Prazer em conhecê-lo, ${userMemory.name}! 😊 Sou a NEXA AI e estou aqui para te ajudar com o que precisar!`);
+      }
+
+      // Comandos básicos
+      if (lower.includes("seu nome") || lower.includes("quem é você")) {
+        return reply("Eu sou a NEXA AI 🤖 - sua assistente virtual completa, pronta para ajudar em conversas, estudos, jogos ou negócios!");
+      }
+
+      if (lower.includes("hora")) {
+        return reply(`Agora são ${new Date().toLocaleTimeString('pt-BR')} ⏰`);
+      }
+
+      if (lower.includes("limpar chat")) {
+        chatMessages.innerHTML = "";
+        return reply("Chat limpo com sucesso! ✨");
+      }
+
+      // Chama o backend
+      try {
+        addMessage("...", "ai");
+
+        const response = await fetch(`${BACKEND_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            name: userMemory.name,
+            aiChoice: userMemory.aiChoice
+          })
+        });
+
+        chatMessages.removeChild(chatMessages.lastChild);
+        const data = await response.json();
+        reply(data.reply);
+
+      } catch (error) {
+        chatMessages.removeChild(chatMessages.lastChild);
+        reply("Desculpe, tive um problema ao conectar! 😕 Tente novamente mais tarde.");
+        console.error(error);
+      }
+    }
+
+    function reply(text) {
+      setTimeout(() => addMessage(text, "ai"), 600);
+    }
+
+    // Eventos
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    // Mensagem inicial
+    reply(userMemory.name 
+      ? `Bem-vindo de volta, ${userMemory.name}! 😊 O que precisa hoje?`
+      : "Olá! Eu sou a NEXA AI. Me diga seu nome ou pergunte algo que eu te ajudo! 🤗"
+    );
+  </script>
+</body>
+        </html>
+        
